@@ -1,67 +1,48 @@
 package handlers
 
 import (
-	"encoding/json" // Импортируем пакет json
-	"fmt"
-	"log/slog"
 	"net/http"
 )
 
+// Router encapsulates the HTTP multiplexer (ServeMux) and provides methods
+// for registering routes for different handlers.
 type Router struct {
 	mux *http.ServeMux
 }
 
+// NewRouter creates and returns a new instance of Router, initializing the ServeMux.
 func NewRouter() *Router {
 	return &Router{
 		mux: http.NewServeMux(),
 	}
 }
 
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	slog.Error("Responding with error", "code", code, "message", message)
-	respondWithJSON(w, code, map[string]string{"error": message})
+// RegisterKeyRoutes registers the routes managed by KeyHandler.
+// It delegates the actual route registration to the KeyHandler's RegisterRoutes method.
+func (r *Router) RegisterKeyRoutes(keyHandler *KeyHandler) {
+	keyHandler.RegisterRoutes(r.mux)
 }
 
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, err := json.Marshal(payload)
-	if err != nil {
-		slog.Error("Failed to marshal JSON response", "error", err, "payload", payload)
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		errorResponse := fmt.Sprintf(`{"error": "failed to marshal JSON response: %v"}`, err)
-		_, writeErr := w.Write([]byte(errorResponse))
-		if writeErr != nil {
-			slog.Error("Failed to write error response after marshalling error", "error", writeErr)
-		}
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(code)
-	_, err = w.Write(response)
-	if err != nil {
-		slog.Error("Failed to write JSON response to client", "error", err)
-	}
+// RegisterUserRoutes registers the routes managed by UserHandler.
+// It delegates the actual route registration to the UserHandler's RegisterRoutes method.
+func (r *Router) RegisterUserRoutes(userHandler *UserHandler) {
+	userHandler.RegisterRoutes(r.mux)
 }
 
-func (r *Router) CollectRoutes() error {
-	slog.Info("Collecting routes...")
-
-	r.mux.HandleFunc("GET /health", func(w http.ResponseWriter, req *http.Request) {
-
-		slog.Info("Handling /health request", "method", req.Method, "path", req.URL.Path)
-
-		respondWithJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-
-		slog.Info("Handled /health request successfully")
-	})
-
-	r.mux.HandleFunc("GET /randomKey", r.GetRandomKey)
-
-	slog.Info("Routes collected successfully")
-	return nil
+// RegisterSubscriptionRoutes registers the routes managed by SubscriptionHandler.
+// It delegates the actual route registration to the SubscriptionHandler's RegisterRoutes method.
+func (r *Router) RegisterSubscriptionRoutes(subscriptionHandler *SubscriptionHandler) {
+	subscriptionHandler.RegisterRoutes(r.mux)
 }
 
+// RegisterHostRoutes registers the routes managed by HostHandler.
+// It delegates the actual route registration to the HostHandler's RegisterRoutes method.
+func (r *Router) RegisterHostRoutes(hostHandler *HostHandler) {
+	hostHandler.RegisterRoutes(r.mux)
+}
+
+// GetHandler returns the underlying http.ServeMux instance, which implements http.Handler.
+// This allows the router to be used with an http.Server.
 func (r *Router) GetHandler() http.Handler {
 	return r.mux
 }
