@@ -27,7 +27,7 @@ func NewKeyHandler(kmService interfaces.KeyService) *KeyHandler {
 func (h *KeyHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Route for generating a VLESS key for a specific user.
 	// Expects userID as a path parameter and optional 'remarks' as a query parameter.
-	mux.HandleFunc("GET /api/v1/users/{userID}/vless-key", h.GenerateUserVlessKey)
+	mux.HandleFunc("GET /v1/users/{userID}/vless-key", h.GenerateUserVlessKey)
 }
 
 // GenerateUserVlessKey handles the request to generate a VLESS key for a specified user.

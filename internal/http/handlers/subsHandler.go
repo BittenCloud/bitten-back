@@ -32,18 +32,18 @@ func NewSubscriptionHandler(ss interfaces.SubscriptionService) *SubscriptionHand
 // RegisterRoutes registers the HTTP routes for subscription-related actions.
 func (h *SubscriptionHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Routes for subscriptions specific to a user.
-	mux.HandleFunc("POST /api/v1/users/{userID}/subscriptions", h.CreateSubscriptionForUser)
-	mux.HandleFunc("GET /api/v1/users/{userID}/subscriptions", h.ListUserSubscriptions)
+	mux.HandleFunc("POST /v1/users/{userID}/subscriptions", h.CreateSubscriptionForUser)
+	mux.HandleFunc("GET /v1/users/{userID}/subscriptions", h.ListUserSubscriptions)
 
 	// Routes for managing a specific subscription by its ID.
-	mux.HandleFunc("GET /api/v1/subscriptions/{subscriptionID}", h.GetSubscriptionByID)
-	mux.HandleFunc("PATCH /api/v1/subscriptions/{subscriptionID}/cancel", h.CancelSubscription)
-	mux.HandleFunc("PATCH /api/v1/subscriptions/{subscriptionID}/payment", h.UpdatePaymentStatus)
-	mux.HandleFunc("PATCH /api/v1/subscriptions/{subscriptionID}/autorenew", h.SetAutoRenew)
+	mux.HandleFunc("GET /v1/subscriptions/{subscriptionID}", h.GetSubscriptionByID)
+	mux.HandleFunc("PATCH /v1/subscriptions/{subscriptionID}/cancel", h.CancelSubscription)
+	mux.HandleFunc("PATCH /v1/subscriptions/{subscriptionID}/payment", h.UpdatePaymentStatus)
+	mux.HandleFunc("PATCH /v1/subscriptions/{subscriptionID}/autorenew", h.SetAutoRenew)
 
 	// Reporting routes.
-	mux.HandleFunc("GET /api/v1/reports/expiring-subscriptions", h.ListUsersWithExpiringSubscriptions)
-	mux.HandleFunc("GET /api/v1/reports/active-by-plan", h.ListActiveSubscriptionsByPlan)
+	mux.HandleFunc("GET /v1/reports/expiring-subscriptions", h.ListUsersWithExpiringSubscriptions)
+	mux.HandleFunc("GET /v1/reports/active-by-plan", h.ListActiveSubscriptionsByPlan)
 }
 
 // CreateSubscriptionForUser handles the request to create a new subscription for a specified user.

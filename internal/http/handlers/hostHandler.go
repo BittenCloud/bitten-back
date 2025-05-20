@@ -30,12 +30,12 @@ func NewHostHandler(hs interfaces.HostService) *HostHandler {
 
 // RegisterRoutes registers the HTTP routes for host-related actions.
 func (h *HostHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/hosts", h.CreateHost)
-	mux.HandleFunc("GET /api/v1/hosts", h.ListHosts)
-	mux.HandleFunc("GET /api/v1/hosts/{hostID}", h.GetHostByID)
-	mux.HandleFunc("PUT /api/v1/hosts/{hostID}", h.UpdateHost)
-	mux.HandleFunc("DELETE /api/v1/hosts/{hostID}", h.DeleteHost) // Soft delete.
-	mux.HandleFunc("PATCH /api/v1/hosts/{hostID}/status", h.UpdateHostOnlineStatus)
+	mux.HandleFunc("POST /v1/hosts", h.CreateHost)
+	mux.HandleFunc("GET /v1/hosts", h.ListHosts)
+	mux.HandleFunc("GET /v1/hosts/{hostID}", h.GetHostByID)
+	mux.HandleFunc("PUT /v1/hosts/{hostID}", h.UpdateHost)
+	mux.HandleFunc("DELETE /v1/hosts/{hostID}", h.DeleteHost) // Soft delete.
+	mux.HandleFunc("PATCH /v1/hosts/{hostID}/status", h.UpdateHostOnlineStatus)
 }
 
 // CreateHost handles the request to create a new host.

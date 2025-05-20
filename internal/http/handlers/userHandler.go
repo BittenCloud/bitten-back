@@ -30,11 +30,11 @@ func NewUserHandler(us interfaces.UserService) *UserHandler {
 
 // RegisterRoutes registers the HTTP routes for user-related actions.
 func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/users", h.CreateUser)
-	mux.HandleFunc("GET /api/v1/users/{userID}", h.GetUser)
-	mux.HandleFunc("PUT /api/v1/users/{userID}", h.UpdateUser)
-	mux.HandleFunc("DELETE /api/v1/users/{userID}", h.DeleteUser)
-	mux.HandleFunc("GET /api/v1/users", h.ListUsers)
+	mux.HandleFunc("POST /v1/users", h.CreateUser)
+	mux.HandleFunc("GET /v1/users/{userID}", h.GetUser)
+	mux.HandleFunc("PUT /v1/users/{userID}", h.UpdateUser)
+	mux.HandleFunc("DELETE /v1/users/{userID}", h.DeleteUser)
+	mux.HandleFunc("GET /v1/users", h.ListUsers)
 }
 
 // CreateUser handles the request to create a new user.
