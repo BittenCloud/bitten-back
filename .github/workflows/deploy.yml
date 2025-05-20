@@ -5,20 +5,29 @@ on:
     branches:
       - master
 
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
-
 jobs:
   build-and-push-image:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     permissions:
-      contents: read      # For checkout
-      packages: write    # For push to GitHub Container Registry
+      contents: read      # for checkout
+      packages: write    # for Push in GitHub Container Registry
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Convert owner and repo name to lowercase
+        id: set_names
+        run: |
+          echo "LOWER_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "LOWER_REPO_NAME=$(echo ${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -27,28 +36,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v5
         with:
-          context: . # Project root, where Dockerfile is located
-          file: ./Dockerfile # Path to Dockerfile
+          context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}, ${{ env.IMAGE_NAME }}:latest # Tag with commit hash and latest
+          tags: |
+            ghcr.io/${{ env.LOWER_OWNER }}/${{ env.LOWER_REPO_NAME }}:${{ github.sha }}
+            ghcr.io/${{ env.LOWER_OWNER }}/${{ env.LOWER_REPO_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy-to-server:
     name: Deploy to Production Server
-    needs: build-and-push-image # Runs after successful image build and push
+    needs: build-and-push-image
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # To get docker-compose.prod.yml and nginx.prod.conf
+        uses: actions/checkout@v4
+
+      - name: Convert owner and repo name to lowercase for deployment
+        id: set_deploy_names
+        run: |
+          echo "LOWER_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "LOWER_REPO_NAME=$(echo ${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -72,19 +86,16 @@ jobs:
 
       - name: Deploy application on server
         env:
-          # Secrets for the database
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          # Variable with the full image name and tag for docker-compose
-          APP_IMAGE_NAME_WITH_TAG: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          APP_IMAGE_NAME_WITH_TAG: ghcr.io/${{ env.LOWER_OWNER }}/${{ env.LOWER_REPO_NAME }}:${{ github.sha }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             cd /opt/bitback/
 
-            # Export environment variables for docker-compose to use
             export DB_USER="${DB_USER}"
             export DB_PASSWORD="${DB_PASSWORD}"
             export DB_NAME="${DB_NAME}"
@@ -93,13 +104,11 @@ jobs:
             export APP_IMAGE_NAME_WITH_TAG="${APP_IMAGE_NAME_WITH_TAG}"
 
             echo "Pulling new image: ${APP_IMAGE_NAME_WITH_TAG}"
-
             docker pull ${APP_IMAGE_NAME_WITH_TAG}
 
             echo "Starting docker-compose..."
-
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
-
+          
             echo "Cleaning up old docker images..."
             docker image prune -af
           EOF
