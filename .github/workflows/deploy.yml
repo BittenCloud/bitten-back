@@ -85,14 +85,14 @@ jobs:
           scp ./nginx.prod.conf ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/bitback/nginx.prod.conf
 
       - name: Deploy application on server
-
         env:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-
+          GHCR_SERVER_PULL_TOKEN: ${{ secrets.GHCR_SERVER_PULL_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: |
           
           LOCAL_APP_IMAGE_NAME_WITH_TAG="ghcr.io/${{ env.LOWER_OWNER }}/${{ env.LOWER_REPO_NAME }}:${{ github.sha }}"
@@ -100,22 +100,25 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} <<EOF
             cd /opt/bitback/
           
-          
+            # Export DB secrets
             export DB_USER="${DB_USER}"
             export DB_PASSWORD="${DB_PASSWORD}"
             export DB_NAME="${DB_NAME}"
             export POSTGRES_USER="${POSTGRES_USER}"
             export POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
           
-            # Экспортируем полное имя образа, которое мы сформировали локально на runner'е
+            # Export the full image name that we formed locally on the runner
             export APP_IMAGE_NAME_WITH_TAG="${LOCAL_APP_IMAGE_NAME_WITH_TAG}"
           
-            echo "Pulling new image: \${APP_IMAGE_NAME_WITH_TAG}" # Используем \${...} для вывода значения с сервера
-            docker pull "\${APP_IMAGE_NAME_WITH_TAG}" # Переменная будет подставлена на сервере
+            echo "Logging into ghcr.io on server..."
+            # Use GITHUB_ACTOR and GHCR_SERVER_PULL_TOKEN for login
+            echo "${GHCR_SERVER_PULL_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          
+            echo "Pulling new image: \${APP_IMAGE_NAME_WITH_TAG}"
+            docker pull "\${APP_IMAGE_NAME_WITH_TAG}"
           
             echo "Starting docker-compose..."
-            # Уберем warning про версию, это не критично, но можно удалить 'version: "3.8"' из docker-compose.prod.yml
-            docker compose -f docker-compose.prod.yml config # Можно добавить для проверки конфигурации на сервере
+            docker compose -f docker-compose.prod.yml config
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
           
             echo "Cleaning up old docker images..."
