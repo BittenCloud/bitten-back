@@ -16,7 +16,7 @@ services:
 
   app:
     build:
-      context: . # Specifies the build context path (location of Dockerfile).
+      context: ../../../ # Specifies the build context path (location of Dockerfile).
       dockerfile: Dockerfile # Specifies the Dockerfile name.
     container_name: bitten_api
     depends_on:

@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17.5
+    container_name: prod_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - appnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ${APP_IMAGE_NAME_WITH_TAG}
+    container_name: prod_bitten_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9080:9080"
+    environment:
+      LOG_LEVEL: info
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: disable
+      API_PORT: "9080"
+      API_HOST: "0.0.0.0"
+      API_READ_TIMEOUT_SECONDS: "10"
+      API_WRITE_TIMEOUT_SECONDS: "10"
+      API_IDLE_TIMEOUT_SECONDS: "120"
+      API_SHUTDOWN_TIMEOUT_SECONDS: "15"
+      DB_MAX_OPEN_CONNS: "25"
+      DB_MAX_IDLE_CONNS: "25"
+      DB_CONN_MAX_LIFETIME_MINUTES: "5"
+      DB_GORM_LOG_LEVEL: "warn"
+      DB_GORM_SLOW_THRESHOLD_MS: "200"
+
+    networks:
+      - appnet
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:latest
+    container_name: prod_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - letsencrypt_certs:/etc/letsencrypt
+      - letsencrypt_html:/var/www/html
+    depends_on:
+      - app
+    networks:
+      - appnet
+    restart: unless-stopped
+
+networks:
+  appnet:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  letsencrypt_certs:
+  letsencrypt_html:
