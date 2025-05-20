@@ -93,6 +93,7 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           GHCR_SERVER_PULL_TOKEN: ${{ secrets.GHCR_SERVER_PULL_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
+          NGINX_API_KEY_SECRET: ${{ secrets.NGINX_API_KEY }}
         run: |
           
           LOCAL_APP_IMAGE_NAME_WITH_TAG="ghcr.io/${{ env.LOWER_OWNER }}/${{ env.LOWER_REPO_NAME }}:${{ github.sha }}"
@@ -107,6 +108,8 @@ jobs:
             export POSTGRES_USER="${POSTGRES_USER}"
             export POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
           
+            export EXPECTED_API_KEY="${NGINX_API_KEY_SECRET}" 
+          
             # Export the full image name that we formed locally on the runner
             export APP_IMAGE_NAME_WITH_TAG="${LOCAL_APP_IMAGE_NAME_WITH_TAG}"
           
@@ -117,10 +120,17 @@ jobs:
             echo "Pulling new image: \${APP_IMAGE_NAME_WITH_TAG}"
             docker pull "\${APP_IMAGE_NAME_WITH_TAG}"
           
+            echo "Substituting API Key in nginx.prod.conf..."
+            
+            cp nginx.prod.conf nginx.prod.conf.original_with_placeholder
+            
+            envsubst '\$EXPECTED_API_KEY' < nginx.prod.conf.original_with_placeholder > nginx.prod.conf
+            
+            rm nginx.prod.conf.original_with_placeholder
+
             echo "Starting docker-compose..."
-            docker compose -f docker-compose.prod.yml config
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            # docker compose -f docker-compose.prod.yml config 
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
           
             echo "Cleaning up old docker images..."
-            docker image prune -af
-          EOF
+            doc
