@@ -66,7 +66,7 @@ func NewApplication(ctx context.Context) (*Application, error) {
 	userService := services.NewUserService(userRepo)
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, userRepo) // SubscriptionService also requires userRepo.
 	hostService := services.NewHostService(hostRepo)
-	keyService := services.NewKeyService(userRepo, hostRepo) // KeyService requires userRepo and hostRepo.
+	keyService := services.NewKeyService(userRepo, hostRepo, subscriptionRepo) // KeyService requires userRepo and hostRepo.
 	slog.Info("Services initialized successfully.")
 
 	// Initialize HTTP handlers.

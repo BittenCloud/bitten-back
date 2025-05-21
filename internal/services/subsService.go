@@ -364,3 +364,15 @@ func (s *subscriptionService) ListActiveSubscriptionsByPlan(ctx context.Context,
 	slog.InfoContext(ctx, "ListActiveSubscriptionsByPlan: subscriptions listed successfully", "planName", planName, "count", len(subs), "totalCount", totalCount)
 	return subs, totalCount, nil
 }
+
+// CheckUserActiveSubscription checks if a user has any active subscription.
+func (s *subscriptionService) CheckUserActiveSubscription(ctx context.Context, userID uuid.UUID) (bool, error) {
+	slog.InfoContext(ctx, "CheckUserActiveSubscription: checking active subscription", "userID", userID)
+	hasActiveSub, err := s.subRepo.CheckUserActiveSubscription(ctx, userID)
+	if err != nil {
+		slog.ErrorContext(ctx, "CheckUserActiveSubscription: failed to check subscription status from repo", "userID", userID, "error", err)
+		return false, fmt.Errorf("could not check user's active subscription: %w", err)
+	}
+	slog.InfoContext(ctx, "CheckUserActiveSubscription: status checked", "userID", userID, "hasActiveSubscription", hasActiveSub)
+	return hasActiveSub, nil
+}

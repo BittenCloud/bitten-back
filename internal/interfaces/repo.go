@@ -1,3 +1,4 @@
+// bitback/internal/interfaces/repo.go
 package interfaces
 
 import (
@@ -58,6 +59,10 @@ type SubscriptionRepository interface {
 	// ListActiveByPlanName retrieves a paginated list of active subscriptions matching a specific plan name.
 	// It returns the list of subscriptions, the total count, and any error.
 	ListActiveByPlanName(ctx context.Context, planName string, offset, limit int) (subscriptions []models.Subscription, totalCount int64, err error)
+
+	// CheckUserActiveSubscription checks if a user has any active subscription.
+	// Returns true if an active subscription is found, false otherwise.
+	CheckUserActiveSubscription(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 // HostRepository defines methods for interacting with the host data storage.
@@ -72,8 +77,11 @@ type HostRepository interface {
 	// This is often used to check for uniqueness.
 	GetByAddressPortProtocolNetwork(ctx context.Context, address, port, protocol, network string) (*models.Host, error)
 
-	// GetRandomActiveHost retrieves a random, currently active host from the storage.
-	GetRandomActiveHost(ctx context.Context) (*models.Host, error)
+	// GetRandomActiveHost retrieves a random, active host from the storage,
+	// optionally filtering by country and whether it's a free tier host.
+	// If isFreeTier is nil, it doesn't filter by free status.
+	// If country is nil or empty, it doesn't filter by country.
+	GetRandomActiveHost(ctx context.Context, country *string, isFreeTier *bool) (*models.Host, error)
 
 	// Update persists changes to an existing host in the storage.
 	Update(ctx context.Context, host *models.Host) error

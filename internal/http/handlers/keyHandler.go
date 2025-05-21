@@ -26,13 +26,15 @@ func NewKeyHandler(kmService interfaces.KeyService) *KeyHandler {
 // RegisterRoutes registers the HTTP routes for the KeyHandler.
 func (h *KeyHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Route for generating a VLESS key for a specific user.
-	// Expects userID as a path parameter and optional 'remarks' as a query parameter.
+	// Expects userID as a path parameter and optional 'remarks' & 'country' as query parameters.
 	mux.HandleFunc("GET /v1/users/{userID}/vless-key", h.GenerateUserVlessKey)
+	// Route for generating a VLESS key for a free user.
+	// Expects optional 'remarks' & 'country' as query parameters.
 	mux.HandleFunc("GET /v1/key/free", h.GenerateFreeVlessKey)
 }
 
 // GenerateUserVlessKey handles the request to generate a VLESS key for a specified user.
-// It extracts the userID from the path and optional remarks from query parameters.
+// It extracts the userID from the path and optional remarks & country from query parameters.
 func (h *KeyHandler) GenerateUserVlessKey(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -47,20 +49,26 @@ func (h *KeyHandler) GenerateUserVlessKey(w http.ResponseWriter, r *http.Request
 	// Retrieve 'remarks' from query parameters; use a default if not provided.
 	remarks := r.URL.Query().Get("remarks")
 	if remarks == "" {
-		remarks = "BittenVPN"
+		remarks = "BittenVPN" // Default remarks
 	}
 
-	slog.InfoContext(ctx, "GenerateUserVlessKey: request received", "userID", userID, "remarks", remarks)
+	// Retrieve 'country' from query parameters.
+	countryQuery := r.URL.Query().Get("country")
+	var countryPtr *string
+	if countryQuery != "" {
+		countryPtr = &countryQuery
+	}
+
+	slog.InfoContext(ctx, "GenerateUserVlessKey: request received", "userID", userID, "remarks", remarks, "country", countryQuery)
 
 	// Call the service to generate the VLESS key.
-	vlessKey, err := h.keyManagerService.GenerateVlessKeyForUser(ctx, userID, remarks)
+	result, err := h.keyManagerService.GenerateVlessKeyForUser(ctx, userID, remarks, countryPtr)
 	if err != nil {
 		slog.ErrorContext(ctx, "GenerateUserVlessKey: failed to generate VLESS key via service", "userID", userID, "error", err)
-		// Handle specific errors from the service.
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), "not found") { // User not found
 			respondWithError(w, http.StatusNotFound, err.Error())
 		} else if strings.Contains(err.Error(), "no active hosts available") {
-			respondWithError(w, http.StatusServiceUnavailable, "Unable to generate key: No active hosts are currently available.")
+			respondWithError(w, http.StatusServiceUnavailable, "Unable to generate key: No active hosts are currently available for your criteria.")
 		} else {
 			respondWithError(w, http.StatusInternalServerError, "Failed to generate VLESS key.")
 		}
@@ -69,34 +77,40 @@ func (h *KeyHandler) GenerateUserVlessKey(w http.ResponseWriter, r *http.Request
 
 	// Prepare and send the successful JSON response.
 	response := dto.VlessKeyResponse{
-		VlessKey: vlessKey,
-		UserID:   userID.String(), // Convert UUID to string for the response.
-		Remarks:  remarks,
+		VlessKey:              result.VlessKey,
+		UserID:                userID.String(),
+		Remarks:               remarks,
+		HasActiveSubscription: &result.HasActiveSubscription,
 	}
-	slog.InfoContext(ctx, "GenerateUserVlessKey: VLESS key generated successfully", "userID", userID)
+	slog.InfoContext(ctx, "GenerateUserVlessKey: VLESS key generated successfully", "userID", userID, "hasActiveSubscription", result.HasActiveSubscription)
 	respondWithJSON(w, http.StatusOK, response)
 }
 
+// GenerateFreeVlessKey handles the request to generate a VLESS key for a free user.
 func (h *KeyHandler) GenerateFreeVlessKey(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Retrieve 'remarks' from query parameters; use a default if not provided.
 	remarks := r.URL.Query().Get("remarks")
 	if remarks == "" {
-		remarks = "BittenVPN"
+		remarks = "BittenVPN-Free" // Default remarks for free key
 	}
 
-	slog.InfoContext(ctx, "GenerateFreeVlessKey: request received", "remarks", remarks)
+	// Retrieve 'country' from query parameters.
+	countryQuery := r.URL.Query().Get("country")
+	var countryPtr *string
+	if countryQuery != "" {
+		countryPtr = &countryQuery
+	}
+
+	slog.InfoContext(ctx, "GenerateFreeVlessKey: request received", "remarks", remarks, "country", countryQuery)
 
 	// Call the service to generate the VLESS key.
-	vlessKey, err := h.keyManagerService.GenerateFreeVlessKey(ctx, remarks)
+	vlessKey, err := h.keyManagerService.GenerateFreeVlessKey(ctx, remarks, countryPtr)
 	if err != nil {
 		slog.ErrorContext(ctx, "GenerateFreeVlessKey: failed to generate VLESS key via service", "error", err)
-		// Handle specific errors from the service.
-		if strings.Contains(err.Error(), "not found") {
-			respondWithError(w, http.StatusNotFound, err.Error())
-		} else if strings.Contains(err.Error(), "no active hosts available") {
-			respondWithError(w, http.StatusServiceUnavailable, "Unable to generate key: No active hosts are currently available.")
+		if strings.Contains(err.Error(), "no active free hosts available") {
+			respondWithError(w, http.StatusServiceUnavailable, "Unable to generate key: No active free hosts are currently available.")
 		} else {
 			respondWithError(w, http.StatusInternalServerError, "Failed to generate VLESS key.")
 		}
@@ -104,6 +118,8 @@ func (h *KeyHandler) GenerateFreeVlessKey(w http.ResponseWriter, r *http.Request
 	}
 
 	// Prepare and send the successful JSON response.
+	// UserID is omitted as this key uses a predefined generic user ID.
+	// HasActiveSubscription is not applicable here.
 	response := dto.VlessKeyResponse{
 		VlessKey: vlessKey,
 		Remarks:  remarks,

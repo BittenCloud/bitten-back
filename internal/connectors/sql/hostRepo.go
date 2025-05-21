@@ -58,50 +58,45 @@ func (r *hostRepository) GetByAddressPortProtocolNetwork(ctx context.Context, ad
 
 // GetRandomActiveHost retrieves a random, active host from the database.
 // It prioritizes hosts that are online (is_online = true) and have a status of 'active'.
-// If no such hosts are found, it falls back to any host that is simply 'is_online = true'.
-func (r *hostRepository) GetRandomActiveHost(ctx context.Context) (*models.Host, error) {
+// Optionally filters by country and free tier status.
+func (r *hostRepository) GetRandomActiveHost(ctx context.Context, country *string, isFreeTier *bool) (*models.Host, error) {
 	var host models.Host
 	var count int64
 
-	// Attempt to find hosts that are online AND have status = models.StatusActive.
-	err := r.db.WithContext(ctx).Model(&models.Host{}).Where("is_online = ? AND status = ?", true, customTypes.StatusActive).Count(&count).Error
+	query := r.db.WithContext(ctx).Model(&models.Host{})
+
+	// Base conditions for active hosts
+	query = query.Where("is_online = ? AND status = ?", true, customTypes.StatusActive)
+
+	// Optional filter by country
+	if country != nil && *country != "" {
+		query = query.Where("LOWER(country) = LOWER(?)", *country)
+	}
+
+	// Optional filter by free tier status
+	if isFreeTier != nil {
+		query = query.Where("is_free_tier = ?", *isFreeTier)
+	}
+
+	// Count hosts matching the primary criteria
+	err := query.Count(&count).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to count active hosts with 'active' status: %w", err)
+		return nil, fmt.Errorf("failed to count active hosts with specific criteria: %w", err)
 	}
 
 	if count > 0 {
-		// Hosts with StatusActive found, select randomly from this pool.
-		err = r.db.WithContext(ctx).
-			Where("is_online = ? AND status = ?", true, customTypes.StatusActive).
-			Order("RANDOM()"). // Use RANDOM() for random selection (PostgreSQL specific).
-			First(&host).Error
+		err = query.Order("RANDOM()").First(&host).Error
 		if err != nil {
-			return nil, fmt.Errorf("failed to get random host with 'active' status: %w", err)
+			return nil, fmt.Errorf("failed to get random host with specific criteria: %w", err)
 		}
 		return &host, nil
 	}
 
-	// Fallback: If no hosts with 'active' status were found, try to find any host that is is_online = true.
-	err = r.db.WithContext(ctx).Model(&models.Host{}).Where("is_online = ?", true).Count(&count).Error
-	if err != nil {
-		return nil, fmt.Errorf("failed to count any online hosts (fallback query): %w", err)
-	}
-
 	if count == 0 {
-		// No hosts are online at all.
 		return nil, gorm.ErrRecordNotFound
 	}
 
-	// Select randomly from any online hosts.
-	err = r.db.WithContext(ctx).
-		Where("is_online = ?", true).
-		Order("RANDOM()").
-		First(&host).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get random online host (fallback query): %w", err)
-	}
-	return &host, nil
+	return nil, gorm.ErrRecordNotFound
 }
 
 // Update saves changes to an existing host record in the database.
@@ -170,6 +165,7 @@ func (r *hostRepository) List(ctx context.Context, params customTypes.ListHostsP
 			query = query.Where("status = ?", statusValue)
 		}
 	}
+	// Note: No direct filter for IsFreeTier in List, but can be added if needed in ListHostsParams
 
 	// Count the total number of records matching the filters before applying pagination.
 	if err := query.Count(&totalCount).Error; err != nil {

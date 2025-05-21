@@ -10,9 +10,13 @@ import (
 // KeyService defines methods for managing and generating keys.
 type KeyService interface {
 	// GenerateVlessKeyForUser creates a VLESS key string for a specified user,
-	// optionally including remarks for identification.
-	GenerateVlessKeyForUser(ctx context.Context, userID uuid.UUID, remarks string) (string, error)
-	GenerateFreeVlessKey(ctx context.Context, remarks string) (string, error)
+	// optionally including remarks for identification and filtering by country.
+	// Returns the key and whether the user has an active subscription.
+	GenerateVlessKeyForUser(ctx context.Context, userID uuid.UUID, remarks string, country *string) (*serviceDTO.GenerateUserKeyResult, error)
+
+	// GenerateFreeVlessKey creates a VLESS key string using a free-tier host,
+	// optionally including remarks and filtering by country.
+	GenerateFreeVlessKey(ctx context.Context, remarks string, country *string) (string, error)
 }
 
 // UserService defines the business logic methods for user management.
@@ -64,7 +68,9 @@ type SubscriptionService interface {
 	// SetAutoRenew enables or disables the auto-renewal feature for a subscription.
 	// The requestingUserID is used for authorization.
 	SetAutoRenew(ctx context.Context, subscriptionID uuid.UUID, requestingUserID uuid.UUID, autoRenew bool) (*models.Subscription, error)
-	// CheckUserActiveSubscription(ctx context.Context, userID uuid.UUID, planName *string) (*models.Subscription, error)
+
+	// CheckUserActiveSubscription checks if a user has any active subscription.
+	CheckUserActiveSubscription(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 // HostService defines the business logic methods for managing hosts or servers.

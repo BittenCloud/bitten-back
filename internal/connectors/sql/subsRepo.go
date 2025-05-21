@@ -158,3 +158,15 @@ func (r *subscriptionRepository) ListActiveByPlanName(ctx context.Context, planN
 	}
 	return subscriptions, totalCount, nil
 }
+
+// CheckUserActiveSubscription checks if a user has any active subscription.
+func (r *subscriptionRepository) CheckUserActiveSubscription(ctx context.Context, userID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Subscription{}).
+		Where("user_id = ? AND is_active = ? AND end_date > ?", userID, true, time.Now()).
+		Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check active subscription for user %s: %w", userID, err)
+	}
+	return count > 0, nil
+}

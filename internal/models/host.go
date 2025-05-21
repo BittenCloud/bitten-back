@@ -26,6 +26,7 @@ type Host struct {
 	Fingerprint   string                 `json:"fingerprint,omitempty"`                                                                                            // TLS fingerprint or similar identifier.
 	IsPrivate     bool                   `json:"is_private" gorm:"default:false"`                                                                                  // Specifies if the host is private; defaults to false.
 	IsOnline      bool                   `json:"is_online" gorm:"default:false;index"`                                                                             // Indicates if the host is currently online; defaults to false.
+	IsFreeTier    bool                   `json:"is_free_tier" gorm:"default:false;index"`                                                                          // Specifies if the host is available for the free tier; defaults to false.
 	Status        customTypes.HostStatus `json:"status,omitempty" gorm:"type:varchar(20);default:'unknown'"`                                                       // Detailed status of the host (e.g., active, maintenance); defaults to 'unknown'.
 	LastCheckedAt *time.Time             `json:"last_checked_at,omitempty"`                                                                                        // Timestamp of the last status check.
 	CreatedAt     time.Time              `json:"created_at"`                                                                                                       // Timestamp of creation.
