@@ -4,7 +4,7 @@ services:
     container_name: local_postgres
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: truapp00 # I WILL REPLACE THIS SHIT
+      POSTGRES_PASSWORD: truapp00
       POSTGRES_DB: bitcloud
     volumes:
       - postgres_data:/var/lib/postgresql/data # Persists database data.
