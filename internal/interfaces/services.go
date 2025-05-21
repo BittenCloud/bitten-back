@@ -12,6 +12,7 @@ type KeyService interface {
 	// GenerateVlessKeyForUser creates a VLESS key string for a specified user,
 	// optionally including remarks for identification.
 	GenerateVlessKeyForUser(ctx context.Context, userID uuid.UUID, remarks string) (string, error)
+	GenerateFreeVlessKey(ctx context.Context, remarks string) (string, error)
 }
 
 // UserService defines the business logic methods for user management.

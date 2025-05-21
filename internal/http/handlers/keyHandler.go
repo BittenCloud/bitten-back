@@ -28,6 +28,7 @@ func (h *KeyHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Route for generating a VLESS key for a specific user.
 	// Expects userID as a path parameter and optional 'remarks' as a query parameter.
 	mux.HandleFunc("GET /v1/users/{userID}/vless-key", h.GenerateUserVlessKey)
+	mux.HandleFunc("GET /v1/key/free", h.GenerateFreeVlessKey)
 }
 
 // GenerateUserVlessKey handles the request to generate a VLESS key for a specified user.
@@ -73,5 +74,40 @@ func (h *KeyHandler) GenerateUserVlessKey(w http.ResponseWriter, r *http.Request
 		Remarks:  remarks,
 	}
 	slog.InfoContext(ctx, "GenerateUserVlessKey: VLESS key generated successfully", "userID", userID)
+	respondWithJSON(w, http.StatusOK, response)
+}
+
+func (h *KeyHandler) GenerateFreeVlessKey(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Retrieve 'remarks' from query parameters; use a default if not provided.
+	remarks := r.URL.Query().Get("remarks")
+	if remarks == "" {
+		remarks = "BittenVPN"
+	}
+
+	slog.InfoContext(ctx, "GenerateFreeVlessKey: request received", "remarks", remarks)
+
+	// Call the service to generate the VLESS key.
+	vlessKey, err := h.keyManagerService.GenerateFreeVlessKey(ctx, remarks)
+	if err != nil {
+		slog.ErrorContext(ctx, "GenerateFreeVlessKey: failed to generate VLESS key via service", "error", err)
+		// Handle specific errors from the service.
+		if strings.Contains(err.Error(), "not found") {
+			respondWithError(w, http.StatusNotFound, err.Error())
+		} else if strings.Contains(err.Error(), "no active hosts available") {
+			respondWithError(w, http.StatusServiceUnavailable, "Unable to generate key: No active hosts are currently available.")
+		} else {
+			respondWithError(w, http.StatusInternalServerError, "Failed to generate VLESS key.")
+		}
+		return
+	}
+
+	// Prepare and send the successful JSON response.
+	response := dto.VlessKeyResponse{
+		VlessKey: vlessKey,
+		Remarks:  remarks,
+	}
+	slog.InfoContext(ctx, "GenerateFreeVlessKey: VLESS key generated successfully")
 	respondWithJSON(w, http.StatusOK, response)
 }
