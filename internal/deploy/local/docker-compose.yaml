@@ -28,7 +28,7 @@ services:
       DB_HOST: postgres # Service name of the PostgreSQL container.
       DB_PORT: 5432
       DB_USER: admin
-      DB_PASSWORD: truapp00 # I WILL REPLACE THIS SHIT
+      DB_PASSWORD: truapp00
       DB_NAME: bitcloud
       DB_SSLMODE: disable # SSL mode for database connection.
       DB_MAX_OPEN_CONNS: 25
