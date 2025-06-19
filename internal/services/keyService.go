@@ -3,7 +3,7 @@ package services
 import (
 	"bitback/internal/interfaces"
 	"bitback/internal/models"
-	"bitback/internal/services/dto" // Assuming you created keyServiceDTO.go
+	"bitback/internal/services/dto"
 	"context"
 	"errors"
 	"fmt"

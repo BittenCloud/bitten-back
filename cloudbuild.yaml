@@ -1,11 +1,21 @@
 steps:
   # 1. Build Docker
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA', '.']
+    args: [ 'build', '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA', '.' ]
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Debug List Repos'
+    entrypoint: gcloud
+    args:
+      - 'artifacts'
+      - 'repositories'
+      - 'list'
+      - '--project=$PROJECT_ID'
+      - '--location=europe'
 
   # 2. Download in Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA']
+    args: [ 'push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA' ]
 
   # 3. Deploy in Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
