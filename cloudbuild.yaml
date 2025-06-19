@@ -25,3 +25,6 @@ steps:
 
 images:
   - 'europe-north1-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
