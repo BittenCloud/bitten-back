@@ -32,6 +32,8 @@ type Config struct {
 	IdleTimeout       time.Duration // Maximum amount of time to wait for the next request when keep-alives are enabled.
 	ReadHeaderTimeout time.Duration // Amount of time allowed to read request headers.
 	ShutdownTimeout   time.Duration // Graceful shutdown period for the server.
+
+	InstanceConnectionName string // Cloud SQL instance connection name (for Cloud Run)
 }
 
 // LoadConfig loads configuration from environment variables, applying default values if not set.
@@ -155,6 +157,10 @@ func LoadConfig() (*Config, error) {
 		cfg.ApiPort = apiPort
 	}
 
+	if instanceConnectionName := os.Getenv("INSTANCE_CONNECTION_NAME"); instanceConnectionName != "" {
+		cfg.InstanceConnectionName = instanceConnectionName
+	}
+
 	// Load API server timeout settings using a helper function.
 	loadDurationFromEnv("API_READ_TIMEOUT_SECONDS", &cfg.ReadTimeout, time.Second, cfg.ReadTimeout)
 	loadDurationFromEnv("API_WRITE_TIMEOUT_SECONDS", &cfg.WriteTimeout, time.Second, cfg.WriteTimeout)
@@ -187,7 +193,17 @@ func loadDurationFromEnv(envKey string, target *time.Duration, unit time.Duratio
 
 // GetDBDSN returns the database connection string (Data Source Name).
 func (c *Config) GetDBDSN() string {
-	// TODO: Password in system.out is too dirty even for me
+	// Проверяем, задано ли имя подключения для Cloud SQL.
+	// Это самый надежный способ определить, что мы работаем в Cloud Run
+	// и должны использовать Unix-сокет.
+	if c.InstanceConnectionName != "" {
+		socketDir := "/cloudsql"
+		return fmt.Sprintf("host=%s/%s user=%s password=%s dbname=%s",
+			socketDir, c.InstanceConnectionName, c.DBUser, c.DBPassword, c.DBName)
+	}
+
+	// Если мы не в Cloud Run, используем стандартное TCP-подключение
+	// для локальной разработки или другого окружения.
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSslMode)
 }
