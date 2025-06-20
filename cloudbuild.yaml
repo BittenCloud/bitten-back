@@ -20,7 +20,7 @@ steps:
       - '--region=europe-west1'
       - '--image=europe-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA'
       - '--platform=managed'
-      - '--allow-unauthenticated'
+      - '--ingress=internal-and-cloud-load-balancing'
       - '--service-account=cloud-build-deployer@$PROJECT_ID.iam.gserviceaccount.com'
       - '--update-secrets=DB_PASSWORD=DB_PASSWORD:latest,DB_USER=DB_USER:latest'
       - '--add-cloudsql-instances=$PROJECT_ID:europe-west1:bitten-db-ew1'
