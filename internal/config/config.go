@@ -148,7 +148,7 @@ func LoadConfig() (*Config, error) {
 	if apiHost := os.Getenv("API_HOST"); apiHost != "" {
 		cfg.ApiHost = apiHost
 	}
-	if apiPortStr := os.Getenv("API_PORT"); apiPortStr != "" {
+	if apiPortStr := os.Getenv("PORT"); apiPortStr != "" {
 		apiPort, err := strconv.Atoi(apiPortStr)
 		if err != nil {
 			slog.Error("Invalid API_PORT environment variable. Must be an integer.", "value", apiPortStr, "error", err)
