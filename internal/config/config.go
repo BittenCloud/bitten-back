@@ -193,17 +193,11 @@ func loadDurationFromEnv(envKey string, target *time.Duration, unit time.Duratio
 
 // GetDBDSN returns the database connection string (Data Source Name).
 func (c *Config) GetDBDSN() string {
-	// Проверяем, задано ли имя подключения для Cloud SQL.
-	// Это самый надежный способ определить, что мы работаем в Cloud Run
-	// и должны использовать Unix-сокет.
 	if c.InstanceConnectionName != "" {
-		socketDir := "/cloudsql"
-		return fmt.Sprintf("host=%s/%s user=%s password=%s dbname=%s",
-			socketDir, c.InstanceConnectionName, c.DBUser, c.DBPassword, c.DBName)
+		return fmt.Sprintf("host=/cloudsql/%s dbname=%s user=%s password=%s sslmode=disable",
+			c.InstanceConnectionName, c.DBName, c.DBUser, c.DBPassword)
 	}
 
-	// Если мы не в Cloud Run, используем стандартное TCP-подключение
-	// для локальной разработки или другого окружения.
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSslMode)
 }
