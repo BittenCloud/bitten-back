@@ -1,0 +1,39 @@
+swagger: '2.0'
+info:
+  title: Bitten API (Minimal)
+  version: '1.0.0'
+host: 'bitten-gateway.placeholder.dev'
+schemes:
+  - https
+produces:
+  - application/json
+
+securityDefinitions:
+  firebase_auth:
+    authorizationUrl: ""
+    flow: "implicit"
+    type: "oauth2"
+    x-google-issuer: "https://securetoken.google.com/bitten-cloud"
+    x-google-jwks_uri: "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"
+    x-google-audiences: "bitten-cloud"
+
+x-google-backend:
+  address: "https://bitten-api-service-iycvuodcsq-ew.a.run.app
+
+paths:
+  /v1/users/{userID}/vless-key:
+    get:
+      summary: Generate VLESS key for a user
+      operationId: generateUserVlessKey
+      security:
+        - firebase_auth: [ ]
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
