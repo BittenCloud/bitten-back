@@ -194,8 +194,8 @@ func loadDurationFromEnv(envKey string, target *time.Duration, unit time.Duratio
 // GetDBDSN returns the database connection string (Data Source Name).
 func (c *Config) GetDBDSN() string {
 	if c.InstanceConnectionName != "" {
-		return fmt.Sprintf("host=/cloudsql/%s dbname=%s user=%s password=%s sslmode=disable",
-			c.InstanceConnectionName, c.DBName, c.DBUser, c.DBPassword)
+		return fmt.Sprintf("host=/cloudsql/%s user=%s password=%s dbname=%s sslmode=disable",
+			c.InstanceConnectionName, c.DBUser, c.DBPassword, c.DBName)
 	}
 
 	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
