@@ -15,7 +15,7 @@ steps:
 
   # 2. Download in Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA' ]
+    args: [ 'push', 'europe-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA' ]
 
   # 3. Deploy in Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -32,7 +32,7 @@ steps:
       - '--add-cloudsql-instances=$PROJECT_ID:europe-west1:bitten-db-ew1'
 
 images:
-  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA'
+  - 'europe-docker.pkg.dev/$PROJECT_ID/bitten-back-images/bitten-api:$COMMIT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
